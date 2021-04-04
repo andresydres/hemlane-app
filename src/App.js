@@ -2,12 +2,12 @@ import { useState } from 'react';
 import './App.css';
 import ToDoList from './ToDoList';
 
-const seedData = {
-  Winnie: ['buy eggs', 'buy milk'],
-  Brad: ['buy meat', 'buy vegi'],
-  Bob: ['buy eggs', 'buy apples'],
-  Thomas: ['buy ham', 'buy bananas']
-};
+const seedData = [
+  {name: 'Winnie', tasks: ['buy eggs', 'buy milk']},
+  {name: 'Brad', tasks: ['buy meat', 'buy vegi']},
+  {name: 'Bob', tasks: ['buy eggs', 'buy apples']},
+  {name: 'Thomas', tasks: ['buy ham', 'buy bananas']}
+];
 function App() {
   const [listData, setListData] = useState(seedData);
 
@@ -20,33 +20,29 @@ function App() {
   // 'add task' uses window.prompt
   // each list has 25px space between, and takes up equal amount of leftover space
 
-  const handleArrowClick = (variant, name, itemIndex) => {
-    // check left and right bound
-    const newData = {...listData};
-    const persons = Object.keys(newData);
-    const indexToEdit = persons.indexOf(name);
-    const receivingIndex = variant === 'left' ? indexToEdit - 1 : indexToEdit + 1;
-    const receivingPerson = persons[receivingIndex];
-    const tempStore = newData[name][itemIndex];
-    newData[name] = [...newData[name].slice(0, itemIndex), ...newData[name].slice(itemIndex + 1)];
-    newData[receivingPerson] = [...newData[receivingPerson].slice(0, itemIndex),tempStore, ...newData[receivingPerson].slice(itemIndex)];
+  const handleArrowClick = (variant, itemIndex, personIndex) => {
+    const newData = [...listData];
+    const receivingIndex = variant === 'left' ? personIndex - 1 : personIndex + 1;
+    const tempStore = newData[personIndex].tasks[itemIndex];
+    newData[personIndex].tasks = [...newData[personIndex].tasks.slice(0, itemIndex), ...newData[personIndex].tasks.slice(itemIndex + 1)];
+    newData[receivingIndex].tasks = [...newData[receivingIndex].tasks.slice(0, itemIndex),tempStore, ...newData[receivingIndex].tasks.slice(itemIndex)];
 
     setListData(newData);
   }
 
-  const handleAddTask = (name) => {
+  const handleAddTask = (personIndex) => {
     const response = window.prompt('add a task');
-    const newData = {...listData};
-    newData[name].push(response);
+    const newData = [...listData];
+    newData[personIndex].tasks.push(response);
     setListData(newData);
   }
 
-  const ToDoLists = Object.keys(listData).map((name, i) => {
+  const ToDoLists = listData.map((person, i) => {
     const leftBound = i === 0;
-    const rightBound = i === Object.keys(listData).length - 1;
-    const tasks = listData[name];
+    const rightBound = i === listData.length - 1;
+    const tasks = person.tasks;
     return (
-      <ToDoList name={name} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${name}_${i}`} leftBound={leftBound} rightBound={rightBound} />
+      <ToDoList name={person.name} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${person.name}_${i}`} personIndex={i} leftBound={leftBound} rightBound={rightBound} />
     )
   });
 
@@ -56,7 +52,6 @@ function App() {
         To-Do List
         <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', minWidth: '100vw' }}>{ToDoLists}</div>
       </header>
-      {/* TODO: make space between 25px */}
     </div>
   );
 }
