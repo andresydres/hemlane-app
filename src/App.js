@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
 import ToDoList from './ToDoList';
 
@@ -9,7 +9,29 @@ const seedData = [
   {name: 'Thomas', tasks: ['buy ham', 'buy bananas']}
 ];
 function App() {
-  const [listData, setListData] = useState(seedData);
+  // initalize a db with the seed data
+  // retrieve seed data from db, along with filter text
+  // populate state with data
+
+
+  const currentData = seedData;
+  const [listData, setListData] = useState(currentData);
+
+  useEffect(() => {
+    fetch('/toDoData')
+    .then((res) => {
+      console.log('&&&res', res)
+      return res.json()
+    })
+    .then((data) => console.log('$$data', data));
+  }, []);
+
+  // filter todo items by filter text input
+  const [filterText, setFilterText] = useState('');
+  const handleFilterText = (e) => {
+    setFilterText(e.target.value);
+    // use a debounced function to set the filter input on be
+  };
 
   // iterate over person list
   // create to-do list for each person
@@ -27,14 +49,16 @@ function App() {
     newData[personIndex].tasks = [...newData[personIndex].tasks.slice(0, itemIndex), ...newData[personIndex].tasks.slice(itemIndex + 1)];
     newData[receivingIndex].tasks = [...newData[receivingIndex].tasks.slice(0, itemIndex),tempStore, ...newData[receivingIndex].tasks.slice(itemIndex)];
 
-    setListData(newData);
+    // setListData(newData);
+    // send new data to be, update state with response
   }
 
   const handleAddTask = (personIndex) => {
     const response = window.prompt('add a task');
     const newData = [...listData];
     newData[personIndex].tasks.push(response);
-    setListData(newData);
+    // setListData(newData);
+    // send new data to be, update state with response
   }
 
   const ToDoLists = listData.map((person, i) => {
@@ -42,14 +66,14 @@ function App() {
     const rightBound = i === listData.length - 1;
     const tasks = person.tasks;
     return (
-      <ToDoList name={person.name} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${person.name}_${i}`} personIndex={i} leftBound={leftBound} rightBound={rightBound} />
+      <ToDoList name={person.name} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${person.name}_${i}`} personIndex={i} leftBound={leftBound} rightBound={rightBound} filterText={filterText} />
     )
   });
 
   return (
     <div className="App">
       <header className="App-header">
-        To-Do List
+        <input type="text" value={filterText} onChange={handleFilterText} />
         <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', minWidth: '100vw' }}>{ToDoLists}</div>
       </header>
     </div>
