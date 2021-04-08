@@ -15,25 +15,56 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 app.use(express.json()); 
 
-app.get("/hello", async (req, res) => res.json({ data: 'hi' }))
+const getAllListData = async () => {
+  // read data from be
+  const users = await db.User.findAll();
+  const todos = await db.Todo.findAll();
+  const allData = {};
+  users.forEach((user) => {
+    const id = user.dataValues.id;
+    allData[id] = {...user.dataValues, todos: []};
+  });
+  todos.forEach((todo) => {
+    const userId = todo.dataValues.userId;
+    allData[userId].todos.push(todo.dataValues);
+  });
+  return allData;
+};
 
 app.get("/toDoData", async (req, res) => {
   // read data from be
-  const users = await db.User.findAll();
-  console.log('users', users);
-  const todos = await db.Todo.findAll();
-  res.json({ data: {users, todos} });
+  const allData = await getAllListData();
+  res.json({ data: allData });
 })
 
-app.put("/toDoItem", (req, res) => { // req contains userName, todoText, itemId, order
-  // read data from be
-  // res.json({ data: data });
+app.put("/toDoItem", async (req, res) => { // req contains userId, itemId, variant, order, subsequentTodos
+  const { variant, userId, itemId, subsequentTodos } = req.body;
+  // TODO: handle moving items behind new item, back one
+  // (the following code doesnt work as intended)
+  subsequentTodos.forEach((todoId) => {
+    db.Todo.increment('order', {by: 1,
+      where: {
+        id: todoId,
+      }
+    });
+  })
+  
+  await db.Todo.update({ userId: variant === 'left' ? userId - 1 : userId + 1 }, {
+    where: {
+      id: itemId
+    }
+  });
+  const allData = await getAllListData();
+  res.json({ data: allData });
 })
 
-app.post("/toDoItem", async (req, res) => { // req contains userId, todoText, order
-  const { userId, todoText, order } = req.body;
-  const newItem = await db.Todos.create({userId, todoText, order});
-  res.json({data: newItem})
+app.post("/toDoItem", async (req, res) => { // req contains userId, text, order
+  const { userId, text, order } = req.body;
+  console.log('req.body: ', req.body);
+  console.log('userId, todoText, order: ', userId, text, order);
+  await db.Todo.create({userId, text, order, createdAt: Date.now(), updatedAt: Date.now()});
+  const allData = await getAllListData();
+  res.json({ data: allData });
 })
 
 app.listen(PORT, () => {

@@ -2,28 +2,19 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import ToDoList from './ToDoList';
 
-const seedData = [
-  {name: 'Winnie', tasks: ['buy eggs', 'buy milk']},
-  {name: 'Brad', tasks: ['buy meat', 'buy vegi']},
-  {name: 'Bob', tasks: ['buy eggs', 'buy apples']},
-  {name: 'Thomas', tasks: ['buy ham', 'buy bananas']}
-];
 function App() {
   // initalize a db with the seed data
   // retrieve seed data from db, along with filter text
   // populate state with data
 
-
-  const currentData = seedData;
-  const [listData, setListData] = useState(currentData);
+  const [listData, setListData] = useState({});
 
   useEffect(() => {
     fetch('/toDoData')
     .then((res) => {
-      console.log('&&&res', res)
       return res.json()
     })
-    .then((data) => console.log('$$data', data));
+    .then((data) => setListData(data.data));
   }, []);
 
   // filter todo items by filter text input
@@ -42,31 +33,47 @@ function App() {
   // 'add task' uses window.prompt
   // each list has 25px space between, and takes up equal amount of leftover space
 
-  const handleArrowClick = (variant, itemIndex, personIndex) => {
-    const newData = [...listData];
-    const receivingIndex = variant === 'left' ? personIndex - 1 : personIndex + 1;
-    const tempStore = newData[personIndex].tasks[itemIndex];
-    newData[personIndex].tasks = [...newData[personIndex].tasks.slice(0, itemIndex), ...newData[personIndex].tasks.slice(itemIndex + 1)];
-    newData[receivingIndex].tasks = [...newData[receivingIndex].tasks.slice(0, itemIndex),tempStore, ...newData[receivingIndex].tasks.slice(itemIndex)];
-
-    // setListData(newData);
-    // send new data to be, update state with response
+  const handleArrowClick = (variant, itemId, userId, order) => {
+    const subsequentTodos = listData[userId].todos.reduce((todoIds, todo) => {
+      if (todo.order >= order) {
+        return [...todoIds, todo.id];
+      }
+      return todoIds;
+    }, [])
+    fetch('/toDoItem', {
+      method: 'put',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ variant, itemId, userId, order, subsequentTodos })
+    })
+    .then((res) => {
+      return res.json()
+    })
+    .then((data) => setListData(data.data));
   }
 
-  const handleAddTask = (personIndex) => {
+  const handleAddTask = (userId) => {
     const response = window.prompt('add a task');
-    const newData = [...listData];
-    newData[personIndex].tasks.push(response);
-    // setListData(newData);
-    // send new data to be, update state with response
+    fetch('/toDoItem', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId, text: response, order: listData[userId].todos.length })
+    })
+    .then((res) => {
+      return res.json()
+    })
+    .then((data) => setListData(data.data));
   }
 
-  const ToDoLists = listData.map((person, i) => {
+  const ToDoLists = Object.entries(listData).sort((a,b) => a[0] < b[0] ? -1 : 1).map((entry, i) => {
     const leftBound = i === 0;
     const rightBound = i === listData.length - 1;
-    const tasks = person.tasks;
+    const tasks = entry[1].todos;
     return (
-      <ToDoList name={person.name} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${person.name}_${i}`} personIndex={i} leftBound={leftBound} rightBound={rightBound} filterText={filterText} />
+      <ToDoList name={entry[1].userName} userId={entry[0]} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${entry[1].userName}_${i}`} leftBound={leftBound} rightBound={rightBound} filterText={filterText} />
     )
   });
 

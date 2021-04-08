@@ -31,6 +31,7 @@ module.exports = {
         type: Sequelize.DATE
       }
     });
+    await queryInterface.sequelize.query("ALTER TABLE Todos AUTO_INCREMENT = 1000000;");
   },
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Todos');
