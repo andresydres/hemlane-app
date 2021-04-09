@@ -21,7 +21,14 @@ function App() {
   const [filterText, setFilterText] = useState('');
   const handleFilterText = (e) => {
     setFilterText(e.target.value);
-    // use a debounced function to set the filter input on be
+  };
+
+  const handleFilterTodos = () => {
+    fetch(`/toDoData?${filterText.length ? `filterText=${filterText}` : ''}`)
+    .then((res) => {
+      return res.json()
+    })
+    .then((data) => setListData(data.data));
   };
 
   // iterate over person list
@@ -34,18 +41,13 @@ function App() {
   // each list has 25px space between, and takes up equal amount of leftover space
 
   const handleArrowClick = (variant, itemId, userId, order) => {
-    const subsequentTodos = listData[userId].todos.reduce((todoIds, todo) => {
-      if (todo.order >= order) {
-        return [...todoIds, todo.id];
-      }
-      return todoIds;
-    }, [])
+    
     fetch('/toDoItem', {
       method: 'put',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ variant, itemId, userId, order, subsequentTodos })
+      body: JSON.stringify({ variant, itemId, userId, order })
     })
     .then((res) => {
       return res.json()
@@ -70,7 +72,7 @@ function App() {
 
   const ToDoLists = Object.entries(listData).sort((a,b) => a[0] < b[0] ? -1 : 1).map((entry, i) => {
     const leftBound = i === 0;
-    const rightBound = i === listData.length - 1;
+    const rightBound = i === Object.entries(listData).length - 1;
     const tasks = entry[1].todos;
     return (
       <ToDoList name={entry[1].userName} userId={entry[0]} tasks={tasks} handleArrowClick={handleArrowClick} handleAddTask={handleAddTask} key={`list_${entry[1].userName}_${i}`} leftBound={leftBound} rightBound={rightBound} filterText={filterText} />
@@ -80,7 +82,11 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
+      <div style={{ margin: '20px' }}>
+        <h2>filter todos: </h2>
         <input type="text" value={filterText} onChange={handleFilterText} />
+        <button onClick={handleFilterTodos}>Filter</button>
+      </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: 'row', minWidth: '100vw' }}>{ToDoLists}</div>
       </header>
     </div>
